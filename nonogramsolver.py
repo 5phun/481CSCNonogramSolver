@@ -142,7 +142,7 @@ for file in jpeg_files:
     image1 = Image.open(file)
     images.append(image1)
 #convert step images into a gif
-images[0].save("my_gif.gif", save_all=True, append_images=images[1:], duration=50, loop=0)
+images[0].save("my_gif.gif", save_all=True, append_images=images[1:], duration=50)
 #close images and delete them afterward
 for image in images:
     image.close()
