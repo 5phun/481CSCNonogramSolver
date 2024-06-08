@@ -111,10 +111,10 @@ print_separator(ColsLen, MaxRowLen) :-
 
 % helper for print_separator
 print_spacers(1) :-
-    write('\u2014\u2014\u2014|').
+    write('\u2010\u2010\u2010|').
 print_spacers(ColsLen) :-
     ColsLen > 0,
-    write('\u2014\u2014\u2014|'),
+    write('\u2010\u2010\u2010|'),
     ColsLen1 is ColsLen - 1,
     print_spacers(ColsLen1).
 
@@ -149,7 +149,7 @@ print_spaces(Length) :-
 
 print_dashes(Length) :-
     length(DashesList, Length),
-    maplist(=(8212), DashesList),
+    maplist(=(8208), DashesList),
     string_codes(Dashes, DashesList),
     write(Dashes).
 
@@ -157,22 +157,52 @@ print_dashes(Length) :-
 % ———————————————————————————————————————
 %                 SOLVER
 % ———————————————————————————————————————
-% TODO
-solve(Rows, Cols, Grid).
+% TODO (temp solver Copyright (c) 2011 Lars Buitinck)
+% solve(Rows, Cols, Grid).
+solve(RowSpec, ColSpec, Grid) :-
+    rows(RowSpec, Grid),
+    transpose(Grid, GridT),
+    rows(ColSpec, GridT).
 
+rows([], []).
+rows([C|Cs], [R|Rs]) :-
+    row(C, R),
+    rows(Cs, Rs).
 
-% ———————————————————————————————————————
-%                 EXAMPLES
-% ———————————————————————————————————————
-example1([[2], [4], [6], [4, 3], [5, 4], [2, 3, 2], [3, 5], [5], [3], [2], [2], [6]],
-         [[3], [5], [3, 2, 1], [5, 1, 1], [12], [3, 7], [4, 1, 1, 1], [3, 1, 1], [4], [2]]).
-example1 :-
-    example1(Rows, Cols),
+row(Ks, Row) :-
+    sum(Ks,  #=, Ones),
+    sum(Row, #=, Ones),
+    arcs(Ks, Arcs, start, Final),
+    append(Row, [0], RowZ),
+    automaton(RowZ, [source(start), sink(Final)], [arc(start,0,start) | Arcs]).
+
+% Make list of transition arcs for finite-state constraint.
+arcs([], [], Final, Final).
+arcs([K|Ks], Arcs, CurState, Final) :-
+    gensym(state, NextState),
+    (K == 0 ->
+        Arcs = [arc(CurState,0,CurState), arc(CurState,0,NextState) | Rest],
+        arcs(Ks, Rest, NextState, Final)
+    ;
+        Arcs = [arc(CurState,1,NextState) | Rest],
+        K1 #= K-1,
+        arcs([K1|Ks], Rest, NextState, Final)
+    ).
+
+nono(Hints, SolvedGrid) :-
+    Hints = [Rows, Cols],
     length(Rows, RowLen),
     length(Cols, ColLen),
     make_grid(Grid, RowLen, ColLen, Vars),
     print_grid(Rows, Cols, Grid),
     read(_),
-    solve(Rows, Cols, Grid),
+    time(solve(Rows, Cols, Grid)),
     label(Vars),
-    print_grid(Rows, Cols, Grid).
+    print_grid(Rows, Cols, Grid),
+    SolvedGrid = Grid.
+
+% ———————————————————————————————————————
+%                 EXAMPLES
+% ———————————————————————————————————————
+example1([[[2], [4], [6], [4, 3], [5, 4], [2, 3, 2], [3, 5], [5], [3], [2], [2], [6]],
+         [[3], [5], [3, 2, 1], [5, 1, 1], [12], [3, 7], [4, 1, 1, 1], [3, 1, 1], [4], [2]]]).
