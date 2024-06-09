@@ -194,15 +194,9 @@ nono(Hints, SolvedGrid) :-
     length(Rows, RowLen),
     length(Cols, ColLen),
     make_grid(Grid, RowLen, ColLen, Vars),
-    print_grid(Rows, Cols, Grid),
-    read(_),
+    % print_grid(Rows, Cols, Grid),
+    % read(_),
     time(solve(Rows, Cols, Grid)),
     label(Vars),
     print_grid(Rows, Cols, Grid),
     SolvedGrid = Grid.
-
-% ———————————————————————————————————————
-%                 EXAMPLES
-% ———————————————————————————————————————
-example1([[[2], [4], [6], [4, 3], [5, 4], [2, 3, 2], [3, 5], [5], [3], [2], [2], [6]],
-         [[3], [5], [3, 2, 1], [5, 1, 1], [12], [3, 7], [4, 1, 1, 1], [3, 1, 1], [4], [2]]]).

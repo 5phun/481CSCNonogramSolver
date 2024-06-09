@@ -9,6 +9,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 
 class Driver():
+    # init with chromedriver
     def __init__(self):
         service = Service()
         options = webdriver.ChromeOptions()
@@ -17,12 +18,15 @@ class Driver():
         options.add_argument("--log-level=3")
         self.driver = webdriver.Chrome(service=service, options=options)
 
+    # close driver
     def close(self):
         self.driver.close()
 
+    # update url of driver
     def get(self, url):
         self.driver.get(url)
 
+    # update url according to size, then scrape and return hints
     def scrape_nonogram(self, size):
         if size == "5":
             url = "https://www.puzzle-nonograms.com/"
@@ -48,12 +52,14 @@ class Driver():
         rows_hints = soup.select("#taskLeft .task-group")
         rows = []
         cols = []
+        # get hints for columns
         for group in cols_hints:
             hint = []
             cells = group.select(".selectable")
             for cell in cells:
                 hint.append(int(cell.text))
             cols.append(hint)
+        # get hints for rows
         for group in rows_hints:
             hint = []
             cells = group.select(".selectable")
@@ -62,24 +68,25 @@ class Driver():
             rows.append(hint)
         return rows, cols
         
+    # fill the grid on the site according to the solved cells
     def fill_nonogram(self, solved):
+        # get cells
         cells = self.driver.find_elements(By.CSS_SELECTOR, ".row .cell.selectable")
-        # print(len(cells))
+        # loop solved cells along with corresponding cells on site
         for i, row in enumerate(solved):
             for j, value in enumerate(row):
                 index = i * len(row) + j
                 cell = cells[index]
-                # self.driver.execute_script(f"Game.currentState.cellStatus[{i}][{j}] = 1;")
-                if value == 0 or "cell-on" in cell.get_attribute("class"):
-                    pass
-                else:
-                    self.driver.execute_script(f"arguments[0].setAttribute('class', 'cell selectable cell-on')", cell)
-                    self.driver.execute_script(f"Game.currentState.cellStatus[{i}][{j}] = 1;")
-
-# # Click on the element using JavaScript
-#                 self.driver.execute_script("arguments[0].click();", cell)
+                class_name = cell.get_attribute("class")
+                # if the cell should be empty and it is filled, make it empty
+                if value == 0 and "cell-on" in class_name:
+                    self.driver.execute_script(f"arguments[0].setAttribute('class', 'cell selectable cell-off'); Game.currentState.cellStatus[{i}][{j}] = 0;", cell)
+                # if the cell should be filled and it is empty, make it filled
+                elif value == 1 and "cell-off" in class_name:
+                    self.driver.execute_script(f"arguments[0].setAttribute('class', 'cell selectable cell-on'); Game.currentState.cellStatus[{i}][{j}] = 1;", cell)
 
 
+# call prolog file to solve
 def solve_nonogram(rows, cols):
     prolog = Prolog()
     prolog.consult("nono.pl")
@@ -90,8 +97,9 @@ def solve_nonogram(rows, cols):
 def main():
     driver = None
     while True:
-        command = input("Type 'start', 'example', or 'quit': ")
-        if command.lower() == "start":
+        command = input("Type 'start', 'example', or 'quit': ").lower()
+        # open/update driver to scrape a puzzle
+        if command == "start":
             if not driver:
                 driver = Driver()
                 driver.get("https://www.puzzle-nonograms.com/")
@@ -106,19 +114,23 @@ def main():
             is_solved = False
             while True:
                 if is_solved:
-                    command = input("Type 'solve', 'fill', or 'return': ")
+                    command = input("Type 'fill' or 'return': ").lower()
+                    if command == "fill":
+                        driver.fill_nonogram(solved)
+                        break
                 else:
-                    command = input("Type 'solve' or 'return': ")
-                if command.lower() == "solve":
-                    solved = solve_nonogram(rows, cols)
-                    is_solved = True
-                elif command.lower() == "fill":
-                    driver.fill_nonogram(solved)
-                elif command.lower() == "return":
+                    command = input("Type 'solve' or 'return': ").lower()
+                    if command == "solve":
+                        solved = solve_nonogram(rows, cols)
+                        is_solved = True
+                if command == "return":
                     break
-        elif command.lower() == "example":
+                if command not in ["fill", "solve"]:
+                    print("Invalid command.")
+        # choose from examples
+        elif command == "example":
             while True:
-                example = input("Choose an example # (1-...) or 'return': ")
+                example = input("Choose an example # (1-...) or 'return': ").lower()
                 if example == "1":
                     solve_nonogram([[2], [4], [6], [4, 3], [5, 4], [2, 3, 2], [3, 5], [5], [3], [2], [2], [6]],
                                   [[3], [5], [3, 2, 1], [5, 1, 1], [12], [3, 7], [4, 1, 1, 1], [3, 1, 1], [4], [2]])
@@ -129,8 +141,8 @@ def main():
                     break
                 else:
                     print("Invalid example.")
-                
-        elif command.lower() == "quit":
+        # close the program
+        elif command == "quit":
             if driver:
                 driver.close()
             print("Exiting the program.")
