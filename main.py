@@ -90,7 +90,12 @@ class Driver():
 def solve_nonogram(rows, cols):
     prolog = Prolog()
     prolog.consult("nono.pl")   
-    solved = list(prolog.query(f"nono([{rows}, {cols}], Grid)"))[0]['Grid']
+    #handling no solution nonograms
+    try:
+        solved = list(prolog.query(f"nono([{rows}, {cols}], Grid)"))[0]['Grid']
+    except IndexError: 
+        print("No solution")
+        solved = []
     return solved
 
 
