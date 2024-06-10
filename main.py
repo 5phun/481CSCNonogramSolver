@@ -89,7 +89,7 @@ class Driver():
 # call prolog file to solve
 def solve_nonogram(rows, cols):
     prolog = Prolog()
-    prolog.consult("nono.pl")
+    prolog.consult("nono.pl")   
     solved = list(prolog.query(f"nono([{rows}, {cols}], Grid)"))[0]['Grid']
     return solved
 
@@ -136,7 +136,15 @@ def main():
                                   [[3], [5], [3, 2, 1], [5, 1, 1], [12], [3, 7], [4, 1, 1, 1], [3, 1, 1], [4], [2]])
                 # TODO: any specific ones we want to check, e.g. multi-solutioned, no solution
                 elif example == "2":
-                    pass
+                    #simple multi solution
+                    solve_nonogram([[1],[1]], [[1],[1]])
+                elif example == "3":
+                    #more complex multi solution
+                    solve_nonogram([[4],[3],[2,1],[1,3],[1,1],[3],[2]], 
+                                   [[4],[3],[2,1],[1,3],[1,1],[3],[2]])
+                elif example == "4":
+                    #no solution, prolog.query(f"nono([{rows}, {cols}], Grid)") returns [] so this causes an error in the function
+                    solve_nonogram([[2],[2]], [[2],[1]])
                 elif example == "return":
                     break
                 else:
