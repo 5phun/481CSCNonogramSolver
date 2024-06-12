@@ -135,7 +135,8 @@ def time_puzzle(size):
             if solved is not None:
                 times[id] = time
                 success_count += 1
-            print(success_count)
+        if fail_count != 0:
+            print("Failed:", fail_count, "times")
         # change to list of tuples (fix for pickling error)
         return [(key, value) for key, value in times.items()]
     # close the driver
@@ -182,7 +183,7 @@ def main():
         # choose from examples
         elif command == "example":
             while True:
-                example = input("Choose an example # (1-...) or 'return': ").lower()
+                example = input("Choose an example # (1-4) or 'return': ").lower()
                 # working
                 if example == "1":
                     solve_nonogram([[2], [4], [6], [4, 3], [5, 4], [2, 3, 2], [3, 5], [5], [3], [2], [2], [6]],
@@ -194,6 +195,10 @@ def main():
                 # multiple solutions
                 elif example == "3":
                     solve_nonogram([[1], [1]], [[1], [1]])
+                # more complex multiple solutions
+                elif example == "4":
+                    solve_nonogram([[4],[3],[2,1],[1,3],[1,1],[3],[2]], 
+                                   [[4],[3],[2,1],[1,3],[1,1],[3],[2]])
                 # TODO: any specific ones we want to check, e.g. multi-solutioned, no solution, larger
                 elif example == "return":
                     break
