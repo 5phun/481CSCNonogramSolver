@@ -4,18 +4,24 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.action_chains import ActionChains
+from multiprocessing import Pool
+from collections import defaultdict
+
+
+NUM_TESTS = 500
+
 
 class Driver():
     # init with chromedriver
-    def __init__(self):
+    def __init__(self, mode = None):
         service = Service()
         options = webdriver.ChromeOptions()
         options.add_argument("--window-size=770,820")
         options.add_argument("--window-position=0,0")
         options.add_argument("--log-level=3")
+        # if testing, use headless mode
+        if mode == "test":
+            options.add_argument("--headless")
         self.driver = webdriver.Chrome(service=service, options=options)
 
     # close driver
@@ -27,7 +33,7 @@ class Driver():
         self.driver.get(url)
 
     # update url according to size, then scrape and return hints
-    def scrape_nonogram(self, size):
+    def scrape_nonogram(self, size, mode = None):
         if size == "5":
             url = "https://www.puzzle-nonograms.com/"
         elif size == "10":
@@ -43,7 +49,8 @@ class Driver():
         elif size == "50":
             url = "https://www.puzzle-nonograms.com/?size=7"
         self.driver.get(url)
-        print("Getting puzzle representation...")
+        if mode == None:
+            print("Getting puzzle representation...")
         time.sleep(1)
         self.driver.execute_script("arguments[0].scrollIntoView();", self.driver.find_element(By.ID, "puzzleContainerRalativeDiv"))
         # had to use BS because selenium had some loading issue where it wasn't getting last rows
@@ -66,6 +73,10 @@ class Driver():
             for cell in cells:
                 hint.append(int(cell.text))
             rows.append(hint)
+        # if testing, get the puzzle id as well
+        if mode == "test":
+            id = soup.select_one("#puzzleID").text
+            return rows, cols, id
         return rows, cols
         
     # fill the grid on the site according to the solved cells
@@ -86,18 +97,56 @@ class Driver():
                     self.driver.execute_script(f"arguments[0].setAttribute('class', 'cell selectable cell-on'); Game.currentState.cellStatus[{i}][{j}] = 1;", cell)
 
 
-# call prolog file to solve
+# calls prolog file to solve, used for singular examples
 def solve_nonogram(rows, cols):
     prolog = Prolog()
     prolog.consult("nono.pl")
-    solved = list(prolog.query(f"nono([{rows}, {cols}], Grid)"))[0]['Grid']
-    return solved
+    solved = list(prolog.query(f"nono([{rows}, {cols}], Grid)"))
+    if solved == []:
+        print("No solution found.")
+        return None
+    return solved[0]['Grid']
+
+# scrapes and call prolog file to solve and time, used for collecting times for test
+def time_puzzle(size):
+    fail_count = 0
+    success_count = 0
+    times = defaultdict(lambda: None)
+    # open a new driver
+    driver = Driver(mode="test")
+    try:
+        while success_count < NUM_TESTS:
+            # scrape rows, cols, and id
+            rows, cols, id = driver.scrape_nonogram(size, mode="test")
+            # check if already tested this puzzle
+            if times[id] is not None:
+                continue
+            # use prolog to solve and time 
+            prolog = Prolog()
+            prolog.consult("nono.pl")
+            solved = list(prolog.query(f"nono_timed([{rows}, {cols}], Time, Grid)"))
+            # increment fail count if ever fails, should never happen
+            if solved == []:
+                fail_count += 1
+            else:
+                time = solved[0]['Time']
+                solved = solved[0]['Grid']
+            # if solved, add to times
+            if solved is not None:
+                times[id] = time
+                success_count += 1
+            print(success_count)
+        # change to list of tuples (fix for pickling error)
+        return [(key, value) for key, value in times.items()]
+    # close the driver
+    finally:
+        driver.close()
 
 
 def main():
     driver = None
     while True:
-        command = input("Type 'start', 'example', or 'quit': ").lower()
+        command = input("Type 'start', 'example', 'test', or 'quit': ").lower()
         # open/update driver to scrape a puzzle
         if command == "start":
             if not driver:
@@ -105,6 +154,7 @@ def main():
                 driver.get("https://www.puzzle-nonograms.com/")
                 time.sleep(1)
             while True:
+                # choose a puzzle size
                 size = input("Choose a puzzle size ('5', '10', '15', '20', '25', '30', '50'): ")
                 if size in ["5", "10", "15", "20", "25", "30", "50"]:
                     break
@@ -113,15 +163,17 @@ def main():
             rows, cols = driver.scrape_nonogram(size)
             is_solved = False
             while True:
+                # choose to fill or return if solved
                 if is_solved:
                     command = input("Type 'fill' or 'return': ").lower()
                     if command == "fill":
                         driver.fill_nonogram(solved)
                         break
+                # choose to solve or return if not solved (just scraped)
                 else:
                     command = input("Type 'solve' or 'return': ").lower()
                     if command == "solve":
-                        solved = solve_nonogram(rows, cols)
+                        solved = solve_nonogram(rows, cols)[0]
                         is_solved = True
                 if command == "return":
                     break
@@ -131,18 +183,39 @@ def main():
         elif command == "example":
             while True:
                 example = input("Choose an example # (1-...) or 'return': ").lower()
+                # working
                 if example == "1":
                     solve_nonogram([[2], [4], [6], [4, 3], [5, 4], [2, 3, 2], [3, 5], [5], [3], [2], [2], [6]],
-                                  [[3], [5], [3, 2, 1], [5, 1, 1], [12], [3, 7], [4, 1, 1, 1], [3, 1, 1], [4], [2]])
-                # TODO: any specific ones we want to check, e.g. multi-solutioned, no solution
+                               [[3], [5], [3, 2, 1], [5, 1, 1], [12], [3, 7], [4, 1, 1, 1], [3, 1, 1], [4], [2]])
+                # failing, bad first column
                 elif example == "2":
-                    pass
+                    solve_nonogram([[3], [4], [6], [4, 3], [5, 4], [2, 3, 2], [3, 5], [5], [3], [2], [2], [6]],
+                               [[3], [5], [3, 2, 1], [5, 1, 1], [12], [3, 7], [4, 1, 1, 1], [3, 1, 1], [4], [2]])
+                # multiple solutions
+                elif example == "3":
+                    solve_nonogram([[1], [1]], [[1], [1]])
+                # TODO: any specific ones we want to check, e.g. multi-solutioned, no solution, larger
                 elif example == "return":
                     break
                 else:
                     print("Invalid example.")
+        # running time tests for puzzles of various sizes
+        elif command == "test":
+          sizes = ["5", "10", "15", "20", "25"]  # Define sizes to test
+          pool = Pool(processes=len(sizes))
+          async_results = [pool.apply_async(time_puzzle, args=(size,)) for size in sizes]
+          pool.close()
+          pool.join()
+          with open("test_times", "w") as file:
+              for async_result, size in zip(async_results, sizes):
+                  times = async_result.get()
+                  avg = sum([t[1] for t in times]) / len(times)
+                  print(len(times))
+                  file.write(f"{size} (average: {avg} seconds)\n{times} \n\n")
+
         # close the program
         elif command == "quit":
+            # close all drivers
             if driver:
                 driver.close()
             print("Exiting the program.")
