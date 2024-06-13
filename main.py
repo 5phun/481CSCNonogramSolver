@@ -135,6 +135,7 @@ def time_puzzle(size):
             if solved is not None:
                 times[id] = time
                 success_count += 1
+                print(f"{id} ({size}x{size} solved in: {time}")
         if fail_count != 0:
             print("Failed:", fail_count, "times")
         # change to list of tuples (fix for pickling error)
@@ -156,7 +157,7 @@ def main():
                 time.sleep(1)
             while True:
                 # choose a puzzle size
-                size = input("Choose a puzzle size ('5', '10', '15', '20', '25', '30', '50'): ")
+                size = input("Choose a puzzle size ('5', '10', '15', '20', '25', '30', or '50'): ")
                 if size in ["5", "10", "15", "20", "25", "30", "50"]:
                     break
                 else:
@@ -174,7 +175,7 @@ def main():
                 else:
                     command = input("Type 'solve' or 'return': ").lower()
                     if command == "solve":
-                        solved = solve_nonogram(rows, cols)[0]
+                        solved = solve_nonogram(rows, cols)
                         is_solved = True
                 if command == "return":
                     break
