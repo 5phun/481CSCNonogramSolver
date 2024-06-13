@@ -73,7 +73,7 @@ We were able to successfully solve puzzles of various sizes and number of soluti
 
 Furthermore, the solves are relatively quick, considering the solver's implementation in Prolog.
 
-| Size of Puzzles | Average Time (seconds) |
+| Size of Puzzle | Average Time (seconds) |
 | ----------------- | ---------------------- |
 | 5x5               | 0.0015625              |
 | 10x10             | 0.0328125              |
