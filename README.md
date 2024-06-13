@@ -73,12 +73,12 @@ We were able to successfully solve puzzles of various sizes and number of soluti
 
 Furthermore, the solves are relatively quick, considering the solver's implementation in Prolog.
 
-| Number of Puzzles | Average Time (seconds) |
+| Size of Puzzles | Average Time (seconds) |
 | ----------------- | ---------------------- |
-| 5                 | 0.0015625              |
-| 10                | 0.0328125              |
-| 15                | 0.0859375              |
-| 20                | 0.178125               |
-| 25                | 0.3078125              |
+| 5x5               | 0.0015625              |
+| 10x10             | 0.0328125              |
+| 15x15             | 0.0859375              |
+| 20x20             | 0.178125               |
+| 25x25             | 0.3078125              |
 
 These results are from 500 random-generated puzzles obtained by running the **'test'** command. Note that the site is a random puzzle generator, however, the exact puzzle IDs, along with their solve times can be found in test_times. Also note that the time of solve varies depending on computer specifications.
