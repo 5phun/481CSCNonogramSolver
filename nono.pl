@@ -157,8 +157,30 @@ print_dashes(Length) :-
 % ———————————————————————————————————————
 %                 SOLVER
 % ———————————————————————————————————————
-% TODO (temp solver Copyright (c) 2011 Lars Buitinck)
-% solve(Rows, Cols, Grid).
+% (solver Copyright (c) 2011 Lars Buitinck)
+% % predicate to compare length of lists
+% compare_length(>, L1, L2) :-
+%     length(L1, Len1),
+%     length(L2, Len2),
+%     Len1 > Len2.
+% compare_length(<, L1, L2) :-
+%     length(L1, Len1),
+%     length(L2, Len2),
+%     Len1 < Len2.
+% compare_length(=, _, _).
+
+% % sort list by length
+% sort_by_length(List, SortedList) :-
+%     predsort(compare_length, List, SortedList).
+
+% % sort hints and solve
+% solve(RowSpec, ColSpec, Grid) :-
+%     sort_by_length(RowSpec, SortedRowSpec),
+%     sort_by_length(ColSpec, SortedColSpec),
+%     rows(SortedRowSpec, Grid),
+%     transpose(Grid, GridT),
+%     rows(SortedColSpec, GridT).
+
 solve(RowSpec, ColSpec, Grid) :-
     rows(RowSpec, Grid),
     transpose(Grid, GridT),
@@ -207,3 +229,19 @@ nono(Hints, SolvedGrid) :-
     label(Vars),
     print_grid(Rows, Cols, Grid),
     SolvedGrid = Grid.
+
+nono_timed(Hints, Time, SolvedGrid) :-
+    Hints = [Rows, Cols],
+    length(Rows, RowLen),
+    length(Cols, ColLen),
+    make_grid(Grid, RowLen, ColLen, Vars),
+    % print_grid(Rows, Cols, Grid),
+    % read(_),
+    statistics(cputime, StartTime),
+    solve(Rows, Cols, Grid),
+    statistics(cputime, EndTime),
+    Time is EndTime - StartTime,
+    label(Vars),
+    % print_grid(Rows, Cols, Grid),
+    SolvedGrid = Grid.
+
