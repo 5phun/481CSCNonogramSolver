@@ -116,6 +116,8 @@ def main():
                 else:
                     print("Invalid puzzle size.")
             rows, cols = driver.scrape_nonogram(size)
+            print(rows)
+            print(cols)
             is_solved = False
             while True:
                 if is_solved:

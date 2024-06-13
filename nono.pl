@@ -170,22 +170,29 @@ rows([C|Cs], [R|Rs]) :-
     rows(Cs, Rs).
 
 row(Ks, Row) :-
-    sum(Ks,  #=, Ones),
-    sum(Row, #=, Ones),
+    sum(Ks,  #=, Ones), % sum of the numbers given for the row
+    sum(Row, #=, Ones), % count of the already filled in
     arcs(Ks, Arcs, start, Final),
-    append(Row, [0], RowZ),
+    append(Row, [0], RowZ), % append 0 to end of Row, store list in RowZ
+    % Sequence [0, 1, 1, 0, 0, etc.], Nodes [start, final], Arcs [arc of 0 to start, Arcs]
     automaton(RowZ, [source(start), sink(Final)], [arc(start,0,start) | Arcs]).
 
 % Make list of transition arcs for finite-state constraint.
 arcs([], [], Final, Final).
 arcs([K|Ks], Arcs, CurState, Final) :-
-    gensym(state, NextState),
+    gensym(state, NextState), % generate unique symbol, "state[NextState]"
     (K == 0 ->
+        % [x, y, z], if x has decreased to 0 then arc of 0 to CurState and arc of 0 to NextState
+        % bind Rest to some internal variable
         Arcs = [arc(CurState,0,CurState), arc(CurState,0,NextState) | Rest],
+        % Call arcs/4 with [y, z], Rest, NextState
         arcs(Ks, Rest, NextState, Final)
     ;
+        % Color this state, create arc of 1 to NextState
         Arcs = [arc(CurState,1,NextState) | Rest],
+        % Decrease count
         K1 #= K-1,
+        % Calls arcs with same list but with decreased count
         arcs([K1|Ks], Rest, NextState, Final)
     ).
 
